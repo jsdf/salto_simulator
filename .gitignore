@@ -24,3 +24,4 @@ asm/helloworld.lst
 keyboard.conf
 temp/
 
+/salto.*

@@ -22,7 +22,8 @@
  *
  * $Id: keyboard.c,v 1.1.1.1 2008/07/22 19:02:07 pm Exp $
  *****************************************************************************/
-#include <stdlib.h>
+#include <stdlib.h> 
+#include <stdio.h>
 #include <SDL.h>
 
 #include "alto.h"
@@ -211,7 +212,7 @@ key_map_t key_map[KEY_MAP_SIZE]= {
 {"z",			SDLK_z,			KEY_Z,		KEY_NONE	},
 {"delete",		SDLK_DELETE,		KEY_DEL,	KEY_NONE	},
 /* End of ASCII mapped keysyms */
-
+#if 0
 /* International keyboard syms */
 {"world_0",		SDLK_WORLD_0,		KEY_NONE,	KEY_NONE	},	/* 0xA0 */
 {"world_1",		SDLK_WORLD_1,		KEY_NONE,	KEY_NONE	},
@@ -309,6 +310,7 @@ key_map_t key_map[KEY_MAP_SIZE]= {
 {"world_93",		SDLK_WORLD_93,		KEY_NONE,	KEY_NONE	},
 {"world_94",		SDLK_WORLD_94,		KEY_NONE,	KEY_NONE	},
 {"world_95",		SDLK_WORLD_95,		KEY_NONE,	KEY_NONE	},	/* 0xFF */
+#endif
 
 /* Numeric keypad */
 {"kp0",			SDLK_KP0,		KEY_NONE,	KEY_NONE	},

@@ -24,6 +24,10 @@
  *****************************************************************************/
 #if !defined(_ALTO_H_INCLUDED_)
 #define	_ALTO_H_INCLUDED_
+ 
+#include <SDL/SDL_mouse.h>
+
+#include <sys/types.h>
 
 /** @brief get the integer type definitions */
 #include "altoint.h"

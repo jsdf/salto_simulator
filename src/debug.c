@@ -1595,6 +1595,7 @@ int dbg_dasm(char *buff, size_t size, int indent, int pc, unsigned int ir)
 /**
  * @brief dump various registers and states
  */
+#if 0
 void dbg_dump_regs(void)
 {
 	static mema_info_t *info;
@@ -1862,6 +1863,9 @@ void dbg_dump_regs(void)
 	/* enable log messages again */
 	dbg.lock = 0;
 }
+#else
+void dbg_dump_regs(void) {}
+#endif
 
 
 #if	DEBUG

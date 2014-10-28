@@ -26,18 +26,23 @@ TOOLS	=	tools
 DIRS	=	$(BIN) $(OBJ) $(TEMP)
 
 # C-cache, C compiler and flags
-GCC	= $(shell which gcc)
-CFLAGS	+= -Wall -MD
+# GCC	= $(shell which gcc)
+CC = emcc
+GCC = emcc
+CFLAGS	+= -Wall -MD -I/usr/local/opt/emscripten/system/include/libc -I/usr/local/opt/emscripten/system/include/SDL -I/usr/local/opt/emscripten/system/include -s TOTAL_MEMORY=${TOTAL_MEMORY}
 
 # Linker and flags
 LD	= $(GCC)
-LDFLAGS =
+LDFLAGS = -I/usr/local/opt/emscripten/system/include/SDL
 
 # Archiver and flags
-AR	= ar
-ARFLAGS = r
+# AR	= ar
+AR	= emar
+# ARFLAGS = r
+ARFLAGS = rc
 # Archiver TOC updater
-RANLIB	= ranlib
+# RANLIB	= ranlib
+RANLIB	= emranlib
 
 # Default libraries
 LIBS	=
@@ -109,7 +114,8 @@ CFLAGS	+= -DCRAM_CONFIG=$(CRAM)
 ifeq	($(strip $(DEBUG)),1)
 CFLAGS	+= -g -O3 -DDEBUG=1
 else
-CFLAGS	+= -O3 -fno-strict-aliasing -DDEBUG=0
+CFLAGS	+= -g4 -O3 
+# CFLAGS	+= -O3 -fno-strict-aliasing -DDEBUG=0
 LDFLAGS	+=
 endif
 
@@ -117,10 +123,10 @@ ifeq	($(strip $(SILENT)),1)
 CC_MSG		=	@echo "==> compiling $< ..."
 CC_RUN		=	@$(GCC)
 
-LD_MSG		=	@echo "==> linking $@ ..."
+LD_MSG		=	@echo "==> linking $@ with $(LD)..."
 LD_RUN		=	@$(LD)
 
-AR_MSG		=	@echo "==> archiving $@ ..."
+AR_MSG		=	@echo "==> archiving $@ with $(AR)..."
 AR_RUN		=	@$(AR)
 
 RANLIB_MSG	=	@echo "==> indexing $@ ..."
@@ -162,8 +168,8 @@ AASM_MSG	=	@echo
 endif
 
 # Pull in the SDL CFLAGS, -I includes and LIBS
-INC	+= $(shell sdl-config --cflags)
-LIBS	+= $(shell sdl-config --libs)
+# INC	+= $(shell sdl-config --cflags)
+# LIBS	+= $(shell sdl-config --libs)
 
 # The object files for the altogether binary
 OBJS	=	$(OBJ)/salto.o $(OBJ)/zcat.o $(OBJ)/pics.o \
@@ -184,13 +190,13 @@ OBJS	=	$(OBJ)/salto.o $(OBJ)/zcat.o $(OBJ)/pics.o \
 
 TARGETS :=
 
-ifneq	($(strip $(LIBZ)),)
+# ifneq	($(strip $(LIBZ)),)
 
-# Use a system provided zlib
-LIBS	+= $(LIBZ)
-LIBZOBJ =
+# # Use a system provided zlib
+# LIBS	+= $(LIBZ)
+# LIBZOBJ =
 
-else
+# else
 
 # Use our own static zlib libz.a
 DIRS	+= $(OBJ)/zlib
@@ -206,11 +212,13 @@ LIBZOBJ	+= $(OBJ)/$(ZLIB)/adler32.o $(OBJ)/$(ZLIB)/compress.o \
 LIBZCFLAGS = -O2 -Wall -fno-strict-aliasing \
 	-Wwrite-strings -Wpointer-arith -Wconversion \
 	-Wstrict-prototypes -Wmissing-prototypes
-endif
+# endif
 
 TARGETS += $(BIN)/ppm2c $(BIN)/convbdf $(BIN)/salto \
 	$(BIN)/aasm $(BIN)/adasm $(BIN)/edasm \
 	$(BIN)/dumpdsk $(BIN)/aar $(BIN)/aldump $(BIN)/helloworld.bin
+
+salto: dirs $(OBJ)/$(ZLIB)/libz.a $(TEMP)/pics.c $(BIN)/salto
 
 all:	dirs $(TARGETS)
 
@@ -233,14 +241,12 @@ $(OBJ)/%.o:	tools/%.c
 	$(CC_MSG)
 	$(CC_RUN) $(CFLAGS) -Iinclude -I$(TEMP) -Itools -o $@ -c $<
 
-
 $(TEMP)/pics.c: $(BIN)/ppm2c
 	@echo "==> embedding icons in C source $@ ..."
 	@$(BIN)/ppm2c $(wildcard pics/*.ppm) >$@
 
-$(BIN)/ppm2c:	$(OBJ)/ppm2c.o
-	$(LD_MSG)
-	$(LD_RUN) $(LDFLAGS) -o $@ $^
+$(BIN)/ppm2c: dirs
+	gcc -o bin/ppm2c tools/ppm2c.c
 
 $(OBJ)/%.o:	$(TEMP)/%.c
 	$(CC_MSG)

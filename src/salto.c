@@ -47,6 +47,8 @@
 #include "png.h"
 #include "mng.h"
 
+#include <emscripten/emscripten.h>
+
 #ifndef	GRABKEYS
 /** @brief keys to grab/release mouse input */
 #define	GRABKEYS	(KMOD_LCTRL|KMOD_LALT)
@@ -1210,36 +1212,13 @@ static void usage(int argc, char **argv)
 	exit(0);
 }
 
+static int global_argc;
+static char **global_argv;
 
-/**
- * @brief Salto main entry
- *
- * Initializes the SDL window, loads (P)ROM images, intializes the
- * various subsystems and goes into a loop polling for timer events
- * and executing CPU time slices.
- *
- * @param argc argument count
- * @param argv array of argument strings
- */
-int main(int argc, char **argv)
-{
+void arguments_eval() {
 	int i, drive;
-
-	/* initialize SDL to 606x808x[default] screen */
-	sdl_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, -1, title);
-
-	alto_init("roms");
-	timer_init();
-	init_memory();
-	init_hardware();
-	init_kbd();
-	init_printer();
-	init_eia();
-	drive_init();
-	disk_init();
-	display_init();
-	mouse_init();
-	debug_init();
+	int argc = global_argc;
+	char **argv = global_argv;
 
 	for (i = 1, drive = 0; i < argc; i++) {
 		if (argv[i][0] == '-' || argv[i][0] == '+') {
@@ -1277,10 +1256,10 @@ int main(int argc, char **argv)
 			bootimg_name = argv[i];
 		}
 	}
-	drive_select(0, 0);
-	alto_reset();
+}
 
 #if	DEBUG
+void salto_emscripten_step_debug() {	
 	while (!halted) {
 		ntime_t run, ran;
 		while ((run = timer_next_time()) < CPU_MICROCYCLE_TIME)
@@ -1303,8 +1282,15 @@ int main(int argc, char **argv)
 			sdl_update(0);
 		}
 	}
-#else
-	while (!halted) {
+}
+#endif
+
+void salto_emscripten_step() {
+	int cycle_n = 0;
+
+	printf("running one step");
+	while (!halted && cycle_n < 100) {
+		cycle_n++;
 		ntime_t run, ran;
 		while ((run = timer_next_time()) < CPU_MICROCYCLE_TIME)
 			timer_fire();
@@ -1314,24 +1300,69 @@ int main(int argc, char **argv)
 		ran = alto_execute(run);
 		global_ntime += ran - run;
 		while (paused && !halted) {
-			dbg_dump_regs();
+			// dbg_dump_regs();
 			sdl_update(1);
 		}
 	}
-#endif
-	if (dump) {
-		FILE *fp;
-		int pc;
-
-		fp = fopen("alto.dump", "wb");
-		for (pc = 0; pc < RAM_SIZE; pc++) {
-			uint8_t bytes[2];
-			int data = debug_read_mem(pc);
-			bytes[0] = data % 256;
-			bytes[1] = data / 256;
-			fwrite(bytes, 1, 2, fp);
-		}
-		fclose(fp);
-	}
-	return 0;
 }
+
+/**
+ * @brief Salto main entry
+ *
+ * Initializes the SDL window, loads (P)ROM images, intializes the
+ * various subsystems and goes into a loop polling for timer events
+ * and executing CPU time slices.
+ *
+ * @param argc argument count
+ * @param argv array of argument strings
+ */
+int main(int argc, char **argv)
+{
+	global_argc = argc;
+	global_argv = argv;
+
+	/* initialize SDL to 606x808x[default] screen */
+	sdl_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, -1, title);
+
+	alto_init("roms");
+	timer_init();
+	init_memory();
+	init_hardware();
+	init_kbd();
+	init_printer();
+	init_eia();
+	drive_init();
+	disk_init();
+	display_init();
+	mouse_init();
+	debug_init();
+
+	arguments_eval();
+
+	drive_select(0, 0);
+	alto_reset();
+
+	printf("starting main loop\n");
+
+#if	DEBUG
+	emscripten_set_main_loop(salto_emscripten_step_debug, 100, 1);
+#else
+	emscripten_set_main_loop(salto_emscripten_step, 100, 1);
+#endif
+	// if (dump) {
+	// 	FILE *fp;
+	// 	int pc;
+
+	// 	fp = fopen("alto.dump", "wb");
+	// 	for (pc = 0; pc < RAM_SIZE; pc++) {
+	// 		uint8_t bytes[2];
+	// 		int data = debug_read_mem(pc);
+	// 		bytes[0] = data % 256;
+	// 		bytes[1] = data / 256;
+	// 		fwrite(bytes, 1, 2, fp);
+	// 	}
+	// 	fclose(fp);
+	// }
+	// return 0;
+}
+
